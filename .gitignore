@@ -1,0 +1,28 @@
+# --- 交流用暫存空間 ---
+# 討論檔、訪談檔、拋棄式實驗。結論會寫回 docs/ 或 .claude/skills/，這裡的內容本身不需要保留。
+docs/template/
+
+# --- 環境設定（秘密） ---
+.env
+.env.local
+*.local
+
+# --- 後端 (Maven / Java) ---
+demo/target/
+backend/target/
+*.class
+*.jar
+*.war
+
+# --- 前端 (Node / Vite / Vue) ---
+frontend/node_modules/
+frontend/dist/
+# 前端由 proto/demo/chat/chat.proto 自動產生的程式碼不進版控
+frontend/src/proto/
+
+# --- IDE 與系統 ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
