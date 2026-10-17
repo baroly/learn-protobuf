@@ -1,6 +1,6 @@
 # 000003 - 建立前端 Vue 3 骨架與 protobufjs 靜態 Codegen 驗證
 
-**狀態**：待核准
+**狀態**：已完成（2026-10-17）
 **日期**：2026-10-16
 **前置**：`000002` 已完成（`proto/demo/chat/chat.proto` 已建立，後端 Maven 編譯與序列化測試通過）。
 
@@ -18,8 +18,11 @@
 ### 1. ★ `pbjs` 靜態模組在 Vite (ES Module) 環境下的輸出格式參數
 
 - **問題**：`protobufjs-cli` 的 `pbjs -t static-module` 預設產出的是 CommonJS wrapper，而 Vite 在開發期與打包期原生使用 ES Module (`import / export`)。若不指定 wrapper 與預設匯出格式，在 TypeScript 中 `import` 會遇到 ` does not provide an export named ...` 錯誤。
-- **選擇**：在 `package.json` 的 `proto` 腳本使用：
-  `pbjs -t static-module -w es6 --es6 ../proto/demo/chat/chat.proto -o src/proto/chat.js && pbts -o src/proto/chat.d.ts src/proto/chat.js`
+- **選擇**：在 `package.json` 的 `proto` 腳本使用由 `&&` 串聯的 3 段命令：
+  `node -e "fs.mkdirSync('src/proto', {recursive: true})" && pbjs -t static-module -w es6 --es6 ../proto/demo/chat/chat.proto -o src/proto/chat.js && pbts -o src/proto/chat.d.ts src/proto/chat.js`
+  - **第 1 段（跨平台建目錄）**：`node -e "fs.mkdirSync('src/proto', {recursive: true})"` 呼叫 Node.js 確保 `src/proto` 存在（若已存在不報錯）。
+  - **第 2 段（`pbjs` 產出 JS 靜態模組）**：`-t static-module` 指定編譯為靜態 JS 程式碼；`-w es6 --es6` 指定使用 ES6 模組包裝與具名匯出（`export const demo = ...`）；`-o src/proto/chat.js` 指定輸出檔案。
+  - **第 3 段（`pbts` 產出 TS 型別檔）**：讀取上一步 `src/proto/chat.js` 內的 JSDoc 註解，輸出 `src/proto/chat.d.ts` 型別定義檔。
 - **為什麼**：`-w es6 --es6` 會指示 `pbjs` 直接輸出標準的 ES6 `export const demo = ...` 語法，讓 Vite 與 TypeScript 可以直接 `import { demo } from './proto/chat'` 零設定無縫對接。
 - **連帶影響**：因為你的 `chat.proto` 宣告了 `package demo.chat;`，在前端匯入時的命名空間路徑為 `demo.chat.ChatMessage`、`demo.chat.MessageType`、`demo.chat.ChatHistoryResponse`。
 
@@ -298,3 +301,36 @@ const byteListPreview = ref(Array.from(binaryBytes).join(', '))
 | 決定 | 推翻的話怎麼改 |
 |---|---|
 | 前端目錄命名為 `frontend/` | 若你想取其他名字（如 `web/` 或 `chat-ui/`），在步驟 1 `npm create vite@latest` 時改資料夾名稱即可 |
+
+
+---
+
+## 七、結果
+
+**完成日期**：2026-10-17
+
+| 步驟 | 結果 |
+|---|---|
+| 1 | 建立 `frontend/`（Vite 8.3.4 + Vue 3.5.42 + TypeScript 6.0.2），並安裝 `protobufjs` (^8.8.1) 與 `protobufjs-cli` (^2.7.1) |
+| 2 | 在 `frontend/package.json` 新增 `npm run proto` 並執行，成功從 `../proto/demo/chat/chat.proto` 產出 `src/proto/chat.js` 與 `src/proto/chat.d.ts`（282 行） |
+| 3 | 完成 `frontend/src/App.vue` 編解碼驗證（`ChatMessage` 與 `ChatHistoryResponse` 的 `create`、`encode().finish()`、`decode()`），執行 `npm run build`（`vue-tsc -b && vite build`）於 **85 ms** 全綠通過（產出 bundle `116.75 kB` / gzip `39.16 kB`） |
+
+### 檢查表結果
+
+| # | 做什麼 | 結果 |
+|---|---|---|
+| 1 | 執行 `npm run proto` | 通過，`frontend/src/proto/chat.js` 與 `chat.d.ts` 產生成功，無報錯 |
+| 2 | 執行 `npm run build` | 通過，`vue-tsc -b` 型別檢查與 `vite build` 打包全綠通過 |
+| 3 | `App.vue` 二進位編解碼驗證 | 通過，單筆與 `ChatHistoryResponse` 多筆訊息皆可正常編碼為 `Uint8Array` 並反序列化還原 |
+
+### 實作中發現的技術細節
+
+- **`protobufjs` v8 的 `$Properties` 可空欄位型別**：`pbts` 產生的 `ChatHistoryResponse.messages` 元素型別為 `demo.chat.ChatMessage.$Properties`，其欄位型別皆為選填且可為 `null`（例如 `id?: (string|null)`）。在 Vue 3 `v-for` 綁定 `:key` 時，因 `:key` 不接受 `null`，需使用空值合併運算子 `:key="msg.id ?? ''"` 才能通過 `vue-tsc -b` 嚴格檢查（詳見 `docs/notes/03`）。
+
+### 沒驗證到的
+
+- 尚未與後端 `demo/` 進行跨行程 HTTP / WebSocket 實際二進位封包收發（將於 **Phase 1** 驗證）。
+
+### 與計畫不同的地方
+
+- 無（完全依計畫完成）。

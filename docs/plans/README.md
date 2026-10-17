@@ -42,7 +42,7 @@ docs/plans/
 |---|---|---|
 | `000001` | **Phase 0 任務拆解** | 已完成（2026-10-16）：拆為 `000002`、`000003` 兩份報告，定案使用 JDK 21 |
 | `000002` | 定義共用 `chat.proto` 與後端 Maven Protobuf 編譯＋序列化單元測試 | 已完成（2026-10-16）：4 個測試全綠，Protobuf 34 bytes vs JSON 93 bytes（節省 63.4%） |
-| `000003` | 建立前端 Vue 3 骨架與 `protobufjs` 靜態 Codegen 驗證 | 待核准 |
+| `000003` | 建立前端 Vue 3 骨架與 `protobufjs` 靜態 Codegen 驗證 | 已完成（2026-10-17）：`npm run proto` 與 `npm run build`（85ms）全綠通過，Phase 0 完成 |
 
 ---
 
