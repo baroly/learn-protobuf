@@ -7,19 +7,23 @@
 ## ★ 接續前必讀
 
 - **目前進度**：
-  - **Phase 0（地基：`.proto` 定義、前後端專案骨架與自動 Codegen）已 100% 完成！**
-    - `000001 - Phase 0 任務拆解`：已完成。
-    - `000002 - 定義共用 chat.proto 與後端 Maven Protobuf 編譯＋序列化單元測試`：已完成（4 個 JUnit 測試全綠，單筆訊息 Protobuf **34 bytes** vs JSON **93 bytes**，節省 63.4%）。
-    - `000003 - 建立前端 Vue 3 骨架與 protobufjs 靜態 Codegen 驗證`：已完成（`npm run proto` 與 `npm run build` 全綠通過，前端 `Uint8Array` 序列化與反序列化驗證完成）。
-- **下一步**：進入 **Phase 1（HTTP REST + Protobuf 二進位收發）**，先產出規劃報告 `000004 - Phase 1 任務拆解`（規劃後端 `ProtobufHttpMessageConverter` + 記憶體訊息儲存庫 + `POST/GET /api/messages` 與 `MockMvc` 測試，以及前端 `fetch` 二進位收發與聊天室畫面）。
+  - **Phase 0（`000001`～`000003`）已 100% 完成**。
+  - **Phase 1（HTTP REST + Protobuf 二進位收發）進行中**：
+    - `000004 - Phase 1 任務拆解`：已核准完成（拆為後端 `000005` 與前端 `000006` 兩份報告）。
+    - `000005 - 後端記憶體訊息儲存庫與 Protobuf HTTP REST API（含併發與 MockMvc 測試）`：**進行中（步驟 1 已完成，停在步驟 2）**。
+      - ✅ **步驟 1 已完成**：`ChatMessageStore` 與 `ChatMessageStoreTest`（含 `CountDownLatch` 10 執行緒併發寫入 1,200 筆與 1,000 筆容量淘汰驗證）已實作並通過測試。
+      - ⏳ **步驟 2 待完成**：已建立 `ChatController` 空殼與 `application.yaml` (`context-path: /api`)；尚待實作 `ProtobufConfig`、`ChatController` 方法、`GlobalExceptionHandler` 與 `ChatControllerTest`。
+- **下一步**：明天開工時，繼續完成 `000005` 的**步驟 2**（見 `docs/plans/phase 1/000005 - ...md` 第四節步驟 2），跑過 `mvn clean test` 後收尾 `000005` 並進入前端 `000006`。
 - **之後寫程式前一定要知道的事**：
   1. **實際目錄與 Package 結構**：後端模組位於 `demo/`（Java package 為 `com.demo.chat`，Protobuf 產生碼 package 為 `com.demo.chat.proto`），共用協定檔位於 `proto/demo/chat/chat.proto`（Protobuf package 為 `demo.chat`），前端位於 `frontend/`（匯入命名空間為 `import { demo } from './proto/chat'`）。
-  2. **IDEA Generated Sources 掛載技巧**：`protoc-jar-maven-plugin` 必須設定 `<outputDirectory>${project.build.directory}/generated-sources/protobuf</outputDirectory>` 才不會跟 Lombok 的 `annotations` 父子目錄衝突（詳見 [docs/notes/01](docs/notes/01%20-%20protoc-jar-maven-plugin%20%E8%88%87%20IDEA%20Generated%20Sources%20%E6%8E%9B%E8%BC%89.md)）。
-  3. **Protobuf 二進位底層結構（TLV 與 Varint）**：Tag byte 由 `1 bit 續讀位 + 4 bits 欄位編號 + 3 bits 型別代號` 組成；字串為 TLV（最少 3 bytes），整數/枚舉為 TV（無長度 byte，最少 2 bytes），語意還原全靠前後端各自編譯出的 `.proto` 類別（詳見 [docs/notes/02](docs/notes/02%20-%20Protobuf%20%E4%BA%8C%E9%80%B2%E4%BD%8D%20Wire%20Format%20(TLV%20%E8%88%87%20Varint)%20%E8%88%87%20Schema%20%E8%A7%92%E8%89%B2.md)）。
+  2. **Spring `context-path: /api` 與 `MockMvc` 路由注意事項**：目前 `demo/src/main/resources/application.yaml` 設有 `server.servlet.context-path: /api`，且 `ChatController` 設有 `@RequestMapping("chat")`（正式啟動時完整路徑為 `/api/chat`）。注意在寫 `@WebMvcTest` 的 `MockMvc` 測試時，**`MockMvc` 不會套用 `context-path`**，`mockMvc.perform(post(...))` 的路徑需與 Controller 的 `@RequestMapping` 對齊（例如 `"/chat"` 或 `"/messages"`）。
+  3. **`CountDownLatch` 雙門閂併發測試技巧**：使用 `startLatch(1)`（起跑槍）與 `doneLatch(N)`（終點線裁判）確保多執行緒在同一微秒同時搶鎖，且 `doneLatch.countDown()` 務必放在 `finally` 區塊（詳見 [docs/notes/04](docs/notes/04%20-%20%E4%BD%BF%E7%94%A8%20CountDownLatch%20%E9%9B%99%E9%96%80%E9%96%82%EF%BC%88%E8%B5%B7%E8%B7%91%E6%A7%8D%EF%BC%8B%E7%B5%82%E9%BB%9E%E7%B7%9A%EF%BC%89%E9%80%B2%E8%A1%8C%E5%A4%9A%E5%9F%B7%E8%A1%8C%E7%B7%92%E9%AB%98%E4%BD%B5%E7%99%BC%E5%96%AE%E5%85%83%E6%B8%AC%E8%A9%A6.md)）。
   4. **前端 `protobufjs` 與 TypeScript 必記要點**：`ChatMessage.encode(msg).finish()` 才會拿到 `Uint8Array`；`repeated` 欄位元素在 `.d.ts` 中為 `$Properties`（屬性型別含 `null`），在 Vue `v-for` 綁定 `:key` 時需寫 `:key="msg.id ?? ''"`（詳見 [docs/notes/03](docs/notes/03%20-%20protobufjs%20%E9%9D%9C%E6%85%8B%E6%A8%A1%E7%B5%84%E7%94%9F%E6%88%90%20(pbjs%20%E8%88%87%20pbts)%20%E8%88%87%20TypeScript%20%E5%9E%8B%E5%88%A5%E7%B4%B0%E7%AF%80.md)）。
-  5. **外部終端機跑 `mvn` / `npm` 注意事項**：系統環境變數預設 `JAVA_HOME` 若為 JDK 26，跑 `mvn` 時需指定 JDK 21/22；PowerShell 若限制執行 `.ps1`，可用 `npm.cmd` 代替 `npm`。
+  5. **IDEA Generated Sources 與 Wire Format 筆記**：見 [docs/notes/01](docs/notes/01%20-%20protoc-jar-maven-plugin%20%E8%88%87%20IDEA%20Generated%20Sources%20%E6%8E%9B%E8%BC%89.md) 與 [docs/notes/02](docs/notes/02%20-%20Protobuf%20%E4%BA%8C%E9%80%B2%E4%BD%8D%20Wire%20Format%20(TLV%20%E8%88%87%20Varint)%20%E8%88%87%20Schema%20%E8%A7%92%E8%89%B2.md)。
+  6. **外部終端機跑 `mvn` / `npm` 注意事項**：系統環境變數預設 `JAVA_HOME` 若為 JDK 26，跑 `mvn` 時需指定 JDK 21/22；PowerShell 若限制執行 `.ps1`，可用 `npm.cmd` 代替 `npm`。
 - **尚未驗證的假設**：
-  - 前後端跨行程透過 HTTP `application/x-protobuf` 實際收發二進位封包與 CORS 設定（將於 Phase 1 驗證）。
+  - `000005` 步驟 2 的 `ProtobufHttpMessageConverter` 掛載與 `MockMvc` `application/x-protobuf` 測試（明天完成步驟 2 時驗證）。
+  - 前後端跨行程透過 HTTP `application/x-protobuf` 實際收發二進位封包（將於 `000006` 驗證）。
 
 ---
 

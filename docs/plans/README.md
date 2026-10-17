@@ -46,9 +46,13 @@ docs/plans/
 
 ---
 
-## Phase 1 · HTTP REST + Protobuf 二進位收發（預告）
+## Phase 1 · HTTP REST + Protobuf 二進位收發
 
-*(待 Phase 0 完成後開立 Phase 1 任務拆解報告)*
+| 編號 | 任務 | 狀態 |
+|---|---|---|
+| `000004` | **Phase 1 任務拆解** | 已完成（2026-10-17）：拆為 `000005`（後端）與 `000006`（前端）兩份報告 |
+| `000005` | 後端記憶體訊息儲存庫與 Protobuf HTTP REST API（含併發與 MockMvc 測試） | 進行中（步驟 2） |
+| `000006` | 前端 Vite Proxy、Protobuf `fetch` 二進位收發封裝與聊天室 UI | *(待 `000005` 完成後開立)* |
 
 ---
 
