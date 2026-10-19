@@ -24,6 +24,20 @@
 
 ---
 
+## 2026-10-19 · 前端 UI 畫面與 CSS 樣式交由 AI 代寫（採用 `#4596FF` 淺藍色主題），使用者專注親手撰寫核心通訊邏輯
+
+**原計畫**（決策 1 / `000004`）：前端所有檔案（含 `App.vue` 畫面模板與 CSS 樣式）皆由使用者親手撰寫。
+
+**改成**：
+1. 凡涉及**核心功能與通訊協定**的程式碼（如 `vite.config.ts` 代理設定、`src/api/chatApi.ts` 的 `fetch` + Protobuf `Uint8Array` / `ArrayBuffer` 編解碼封裝、Phase 2 的 WebSocket 封裝），維持 **100% 由使用者親手撰寫**。
+2. 凡屬**純 UI 畫面排版與 CSS 樣式**（`src/style.css`、`src/App.vue` 視覺介面），依 `docs/architecture.md` 決策 1 的重新評估條件，由 **AI 直接代寫**，配色與版面風格對齊 `crypt-fiction` 專案的淺藍色系（主色 `--primary-color: #4596FF`、淺灰底 `#f5f5f5`、白底卡片 `#ffffff`、次要區塊 `#f9f9f9` 與 `4px` 左側主題色強調線）。
+
+**為什麼**：使用者希望將時間與精力 100% 集中在學習 Protobuf 前後端二進位通訊功能開發，避免在 HTML/CSS 視覺排版樣板上耗費時間。
+
+**誰決定的**：使用者
+
+---
+
 ## 2026-10-19 · 後端統一於 `application.yaml` 設定 `context-path: /api`，Controller 路由簡化為 `@RequestMapping("messages")` 並採用 Lombok `@Slf4j`
 
 **原計畫**（`000005`）：在 `ChatController` 直接寫 `@RequestMapping("/api/messages")`，日誌使用手動宣告 `LoggerFactory.getLogger(...)`。
