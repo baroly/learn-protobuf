@@ -1,11 +1,36 @@
 package com.demo.chat.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.demo.chat.proto.ChatMessage;
+import com.demo.chat.proto.ChatHistoryResponse;
 
+import com.demo.chat.store.ChatMessageStore;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+@Slf4j
 @RestController
-@RequestMapping("chat")
+@RequestMapping("messages")
 public class ChatController {
+
+    private static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";
+
+    private final ChatMessageStore chatMessageStore;
+
+    public ChatController(ChatMessageStore chatMessageStore) {
+        this.chatMessageStore = chatMessageStore;
+    }
+
+    @PostMapping(consumes = PROTOBUF_MEDIA_TYPE, produces = PROTOBUF_MEDIA_TYPE)
+    public ChatMessage postMessage(@RequestBody ChatMessage input) {
+        ChatMessage saved = chatMessageStore.append(input);
+        log.debug("Saved protobuf message id={}, type={}", saved.getId(), saved.getType());
+        return saved;
+    }
+
+    @GetMapping(produces = PROTOBUF_MEDIA_TYPE)
+    public ChatHistoryResponse getMessages() {
+        return ChatHistoryResponse.newBuilder()
+                .addAllMessages(chatMessageStore.getRecentMessages()).build();
+    }
 
 }

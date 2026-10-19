@@ -24,6 +24,20 @@
 
 ---
 
+## 2026-10-19 · 後端統一於 `application.yaml` 設定 `context-path: /api`，Controller 路由簡化為 `@RequestMapping("messages")` 並採用 Lombok `@Slf4j`
+
+**原計畫**（`000005`）：在 `ChatController` 直接寫 `@RequestMapping("/api/messages")`，日誌使用手動宣告 `LoggerFactory.getLogger(...)`。
+
+**改成**：
+1. 在 `demo/src/main/resources/application.yaml` 設定全域 `server.servlet.context-path: /api`，`ChatController` 路由寫 `@RequestMapping("messages")`（正式啟動時對外完整路徑仍為 `/api/messages`；`@WebMvcTest` 的 `MockMvc` 測試路徑則為 `"/messages"`）。
+2. `ChatController` 與 `GlobalExceptionHandler` 使用專案已引入的 Lombok `@Slf4j` 取代手動宣告 `Logger`。
+
+**為什麼**：透過 `context-path: /api` 統一管理所有後端 REST 端點的前綴，避免每個 Controller 重複寫 `/api`；使用 `@Slf4j` 讓程式碼更精簡。
+
+**誰決定的**：使用者實作時定案
+
+---
+
 ## 2026-10-16 · 後端目錄命名為 `demo/`、Proto 路徑為 `proto/demo/chat/chat.proto`、Java package 為 `com.demo.chat`
 
 **原計畫**（`000002`）：後端目錄為 `backend/`、Proto 路徑為 `proto/chat.proto`、Java package 為 `com.example.chat`；`protoc-jar-maven-plugin` 使用預設輸出路徑。

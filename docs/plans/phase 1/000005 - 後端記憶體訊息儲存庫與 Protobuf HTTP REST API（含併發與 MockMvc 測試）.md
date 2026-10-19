@@ -1,6 +1,6 @@
 # 000005 - 後端記憶體訊息儲存庫與 Protobuf HTTP REST API（含併發與 MockMvc 測試）
 
-**狀態**：進行中（步驟 1 已完成，進行步驟 2）
+**狀態**：已完成（2026-10-19）
 **日期**：2026-10-17
 **前置**：`000004` 已核准、Phase 0（`000002`）已完成。
 
@@ -599,3 +599,17 @@ class ChatControllerTest {
 | 決定 | 推翻的話怎麼改 |
 |---|---|
 | `GlobalExceptionHandler` 對 `400 Bad Request` 回傳空 Body (`ResponseEntity<Void>`) | 因為專案規定業務端點 0% JSON，錯誤回應不回傳 JSON 字串而直接以 HTTP 狀態碼 (`400` / `415`) 表達最純粹；若未來想定義 `ErrorResponse` proto 訊息可在 Phase 3 擴充 |
+
+---
+
+## 七、結果（完成後填寫）
+
+- **完成日期**：2026-10-19
+- **驗證結果**：
+  - 於 `demo/` 執行 `mvn clean test`，共 **9 個測試全部綠燈通過**（`ChatMessageStoreTest` 2 個、`ChatControllerTest` 3 個、`ChatProtoSerializationTest` 3 個、`DemoApplicationTests` 1 個）。
+  - 驗證了 10 執行緒高併發寫入 1,200 筆訊息時的 1,000 筆容量淘汰與序號嚴格遞增（`msg-201` ～ `msg-1200`）。
+  - 驗證了 `ProtobufHttpMessageConverter` 的 `application/x-protobuf` 收發契約、拒絕 `application/json`（回傳 `415 Unsupported Media Type`）與損毀二進位處理（回傳 `400 Bad Request`）。
+- **實作偏離與補充筆記**：
+  - 於 `application.yaml` 統一配置 `server.servlet.context-path: /api`，`ChatController` 使用 `@RequestMapping("messages")`（`MockMvc` 測試路徑對應為 `"/messages"`），並使用 Lombok `@Slf4j`（已記於 `docs/decisions.md`）。
+  - 補充技術筆記 `docs/notes/04`（`CountDownLatch` 雙門閂併發測試）與 `docs/notes/05`（Spring `MockMvc` 流式 API 三部曲與 Protobuf 二進位測試詳解）。
+
