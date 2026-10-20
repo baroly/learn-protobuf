@@ -6,6 +6,7 @@ import com.demo.chat.proto.MessageType;
 
 import com.demo.chat.config.ProtobufConfig;
 import com.demo.chat.store.ChatMessageStore;
+import com.demo.chat.ws.ChatWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 @WebMvcTest
-@Import({ProtobufConfig.class, ChatMessageStore.class, GlobalExceptionHandler.class})
+@Import({ProtobufConfig.class, ChatMessageStore.class, GlobalExceptionHandler.class, ChatWebSocketHandler.class})
 public class ChatControllerTest {
 
     @Autowired
@@ -32,6 +33,9 @@ public class ChatControllerTest {
 
     @Autowired
     private ChatMessageStore chatMessageStore;
+
+    @Autowired
+    private ChatWebSocketHandler chatWebSocketHandler;
 
     @BeforeEach
     void setUp() {
