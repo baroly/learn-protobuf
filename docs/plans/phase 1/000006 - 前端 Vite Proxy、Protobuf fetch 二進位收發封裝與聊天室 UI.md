@@ -1,6 +1,6 @@
 # 000006 - 前端 Vite Proxy、Protobuf `fetch` 二進位收發封裝與聊天室 UI
 
-**狀態**：已核准（進行步驟 1）
+**狀態**：已完成（2026-10-20）：前後端 HTTP `application/x-protobuf` 二進位收發與淺藍色聊天室 UI 聯調通過
 **日期**：2026-10-19
 **前置**：`000004` 已核准、後端 `000005` 已完成（`POST /api/messages` 與 `GET /api/messages` 已就緒並通過 9 項測試）。
 
@@ -387,3 +387,23 @@ export async function fetchHistoryBinary(): Promise<{
 | 決定 | 推翻的話怎麼改 |
 |---|---|
 | `sendMessageBinary` 與 `fetchHistoryBinary` 除了回傳解碼後的 Protobuf 物件外，一併計算並回傳 `PacketMetrics`（Protobuf byte 數 vs JSON byte 數） | 這樣能讓聊天室左側邊欄即時顯示每次收發省下多少 % 的流量，更具教學價值；若你希望 `chatApi.ts` 只回傳純訊息物件、把統計邏輯放到 `App.vue` 裡，核准時告訴我即可 |
+
+---
+
+## 七、結果
+
+**完成日期**：2026-10-20
+
+- **步驟 1（使用者親手實作）**：
+  - 完成 `frontend/vite.config.ts` 的 `/api` Proxy 設定（轉發至 `http://localhost:8080`）。
+  - 完成 `frontend/src/api/chatApi.ts` 的 `sendMessageBinary` (`POST /api/messages`) 與 `fetchHistoryBinary` (`GET /api/messages`)，`npx vue-tsc -b` 零型別錯誤通過。
+- **步驟 2（AI 代寫 UI 與共同驗收）**：
+  - 完成 `frontend/src/style.css` 與 `frontend/src/App.vue`（對齊 `#4596FF` 淺藍色系雙欄卡片與封包觀測儀表板），`npm.cmd run build` 打包通過（2.10s）。
+- **人工檢查表結果**：
+  - ✅ 檢查 1（初始載入 `GET /api/messages`）：成功透過 `application/x-protobuf` 拉取歷史訊息並解碼顯示。
+  - ✅ 檢查 2（發送訊息 `POST /api/messages`）：成功將 `ChatMessage` 編碼為 `Uint8Array` 發送並解碼後端回應，左側儀表板即時顯示 Protobuf vs JSON 體積比較與前 24 bytes 預覽。
+  - ✅ 檢查 3（重新整理 / 手動更新持久化）：點擊重新載入或重整頁面可從後端 `ChatMessageStore` 拉取最新訊息（確認 HTTP 請求/回應模型需手動觸發更新，即時自動推播將於 Phase 2 WebSocket 實作）。
+- **沒驗證到的東西**：
+  - WebSocket 多分頁 `< 100 ms` 即時自動廣播（屬於 Phase 2 範圍）。
+- **與原計畫不同的地方**：無。
+

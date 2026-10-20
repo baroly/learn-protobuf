@@ -52,10 +52,14 @@ docs/plans/
 |---|---|---|
 | `000004` | **Phase 1 任務拆解** | 已完成（2026-10-17）：拆為 `000005`（後端）與 `000006`（前端）兩份報告 |
 | `000005` | 後端記憶體訊息儲存庫與 Protobuf HTTP REST API（含併發與 MockMvc 測試） | 已完成（2026-10-19）：後端 9 個測試（含 10 執行緒併發淘汰與 MockMvc 二進位收發/415/400）全綠通過 |
-| `000006` | 前端 Vite Proxy、Protobuf `fetch` 二進位收發封裝與聊天室 UI | 進行中（步驟 1） |
+| `000006` | 前端 Vite Proxy、Protobuf `fetch` 二進位收發封裝與聊天室 UI | 已完成（2026-10-20）：`npm run build`（2.10s）通過，前後端 HTTP `application/x-protobuf` 二進位收發與淺藍色 UI 聯調完成，Phase 1 完成 |
 
 ---
 
-## Phase 2 · WebSocket + Protobuf 即時通訊聊天室（預告）
+## Phase 2 · WebSocket + Protobuf 即時通訊聊天室
 
-*(待 Phase 1 完成後開立 Phase 2 任務拆解報告)*
+| 編號 | 任務 | 狀態 |
+|---|---|---|
+| `000007` | **Phase 2 任務拆解** | 待核准 |
+| `000008` | 後端 Spring WebSocket 二進位處理器（`BinaryWebSocketHandler`）與併發廣播測試 | （預留，待 `000007` 核准後撰寫） |
+| `000009` | 前端 WebSocket (`binaryType = 'arraybuffer'`) 即時通訊封裝與多分頁聯調 | （預留，待 `000008` 完成後撰寫） |
