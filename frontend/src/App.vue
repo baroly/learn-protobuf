@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchHistoryBinary, type PacketMetrics, sendMessageBinary } from './api/chatApi'
+import { ChatWebSocketClient } from './api/chatWs'
 import { demo } from './proto/chat'
 
 const { MessageType } = demo.chat
@@ -17,6 +18,46 @@ const isLoading = ref(false)
 const isSending = ref(false)
 const errorMessage = ref<string | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
+
+// WebSocket 即時連線狀態
+const wsConnected = ref(false)
+
+/**
+ * 處理收到 WebSocket 廣播的二進位訊息，並依據訊息 id 去重（避免與 HTTP POST 重複加入）。
+ */
+function handleIncomingWsMessage(
+  incomingMsg: demo.chat.ChatMessage,
+  metrics: PacketMetrics
+) {
+  const alreadyExists = messages.value.some((m) => m.id && m.id === incomingMsg.id)
+  if (!alreadyExists) {
+    messages.value.push(incomingMsg)
+    scrollToBottom()
+  }
+  latestMetrics.value = metrics
+}
+
+/**
+ * 處理 WebSocket 連線狀態變更與錯誤通知。
+ */
+function handleWsStatusChange(connected: boolean, err?: string) {
+  wsConnected.value = connected
+  if (err) {
+    errorMessage.value = err
+  }
+}
+
+const wsClient = new ChatWebSocketClient(handleIncomingWsMessage, handleWsStatusChange)
+
+/** 切換 WebSocket 連線／斷線（斷線時發送 LEAVE，連線時發送 JOIN） */
+function toggleWsConnection() {
+  errorMessage.value = null
+  if (wsConnected.value) {
+    wsClient.disconnect(senderName.value)
+  } else {
+    wsClient.connect(senderName.value)
+  }
+}
 
 // 計算 Protobuf 相較於 JSON 節省的流量百分比
 const savedPercentage = computed(() => {
@@ -52,7 +93,11 @@ async function loadHistory() {
   }
 }
 
-/** 透過 POST /api/messages 發送 Protobuf 二進位訊息 */
+/**
+ * 發送 Protobuf 二進位訊息：
+ * - 若 WebSocket 已連線，優先透過 WebSocket Binary Frame 即時推播給所有分頁
+ * - 若 WebSocket 未連線，退回使用 Phase 1 的 HTTP POST /api/messages
+ */
 async function handleSend() {
   const trimmedSender = senderName.value.trim()
   const trimmedContent = messageInput.value.trim()
@@ -75,12 +120,21 @@ async function handleSend() {
   isSending.value = true
   errorMessage.value = null
   try {
-    const result = await sendMessageBinary(trimmedSender, finalContent, selectedType.value)
-    messages.value.push(result.message)
-    latestMetrics.value = result.metrics
-    messageInput.value = ''
-    selectedType.value = MessageType.CHAT
-    await scrollToBottom()
+    if (wsConnected.value) {
+      wsClient.sendMessage(trimmedSender, finalContent, selectedType.value)
+      messageInput.value = ''
+      selectedType.value = MessageType.CHAT
+    } else {
+      const result = await sendMessageBinary(trimmedSender, finalContent, selectedType.value)
+      const alreadyExists = messages.value.some((m) => m.id && m.id === result.message.id)
+      if (!alreadyExists) {
+        messages.value.push(result.message)
+      }
+      latestMetrics.value = result.metrics
+      messageInput.value = ''
+      selectedType.value = MessageType.CHAT
+      await scrollToBottom()
+    }
   } catch (err) {
     errorMessage.value =
       err instanceof Error
@@ -110,8 +164,13 @@ function getTypeLabel(type?: demo.chat.MessageType | null): string {
   return 'CHAT'
 }
 
-onMounted(() => {
-  loadHistory()
+onMounted(async () => {
+  await loadHistory()
+  wsClient.connect(senderName.value)
+})
+
+onBeforeUnmount(() => {
+  wsClient.disconnect()
 })
 </script>
 
@@ -121,11 +180,27 @@ onMounted(() => {
     <header class="top-header">
       <div class="header-inner">
         <div class="brand-title">
-          <span class="protocol-badge">Phase 1 · HTTP Binary</span>
+          <span class="protocol-badge">Phase 2 · WebSocket + HTTP Binary</span>
           <h1>Protobuf 二進位即時聊天室</h1>
         </div>
         <div class="header-meta">
-          <span>Content-Type: <code>application/x-protobuf</code></span>
+          <span
+            class="ws-status-pill"
+            :class="wsConnected ? 'connected' : 'disconnected'"
+          >
+            <span class="status-dot"></span>
+            {{ wsConnected ? 'WS 已連線 (/api/ws/chat)' : 'WS 未連線' }}
+          </span>
+          <button
+            type="button"
+            class="ws-toggle-btn"
+            :class="wsConnected ? 'danger' : 'connect'"
+            @click="toggleWsConnection"
+          >
+            {{ wsConnected ? '中斷 WS 連線' : '重新連線 WS' }}
+          </button>
+          <span class="meta-divider">|</span>
+          <span>BinaryType: <code>arraybuffer</code></span>
         </div>
       </div>
     </header>
@@ -237,7 +312,7 @@ onMounted(() => {
             :disabled="isLoading"
             @click="loadHistory"
           >
-            {{ isLoading ? '載入中...' : '↻ 重新載入 (GET /api/messages)' }}
+            {{ isLoading ? '載入中...' : '↻ 重新載入歷史 (GET /api/messages)' }}
           </button>
         </div>
 
@@ -301,7 +376,7 @@ onMounted(() => {
             class="chat-input"
             :placeholder="
               selectedType === MessageType.CHAT
-                ? `以 ${senderName || '匿名'} 的身分輸入訊息... (Enter 發送)`
+                ? `以 ${senderName || '匿名'} 的身分輸入訊息... (Enter 即時推播)`
                 : `發送 ${getTypeLabel(selectedType)} 通知（可留空使用預設文字）...`
             "
             :disabled="isSending"
@@ -311,7 +386,13 @@ onMounted(() => {
             class="primary-btn"
             :disabled="isSending || (selectedType === MessageType.CHAT && !messageInput.trim())"
           >
-            {{ isSending ? '發送中...' : '發送 Protobuf (POST)' }}
+            {{
+              isSending
+                ? '發送中...'
+                : wsConnected
+                  ? '發送 Protobuf (WS Binary)'
+                  : '發送 Protobuf (HTTP POST)'
+            }}
           </button>
         </form>
       </section>
@@ -367,8 +448,83 @@ onMounted(() => {
 }
 
 .header-meta {
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.meta-divider {
+  color: var(--border-color);
+}
+
+.ws-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ws-status-pill.connected {
+  background-color: var(--success-bg);
+  color: var(--success-color);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+}
+
+.ws-status-pill.disconnected {
+  background-color: var(--danger-bg);
+  color: var(--danger-color);
+  border: 1px solid rgba(229, 57, 53, 0.25);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ws-status-pill.connected .status-dot {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+}
+
+.ws-status-pill.disconnected .status-dot {
+  background-color: var(--danger-color);
+}
+
+.ws-toggle-btn {
+  padding: 4px 11px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ws-toggle-btn.danger {
+  background-color: #ffffff;
+  color: var(--danger-color);
+  border: 1px solid rgba(229, 57, 53, 0.35);
+}
+
+.ws-toggle-btn.danger:hover {
+  background-color: var(--danger-bg);
+}
+
+.ws-toggle-btn.connect {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: 1px solid var(--primary-color);
+}
+
+.ws-toggle-btn.connect:hover {
+  background-color: var(--primary-hover);
 }
 
 /* 雙欄卡片主容器（對齊 crypt-fiction IndexView.vue） */

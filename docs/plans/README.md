@@ -62,4 +62,4 @@ docs/plans/
 |---|---|---|
 | `000007` | **Phase 2 任務拆解** | 已完成（2026-10-20）：拆為 `000008`（後端）與 `000009`（前端）兩份報告 |
 | `000008` | 後端 Spring WebSocket 二進位處理器（`BinaryWebSocketHandler`）與併發廣播測試 | 已完成（2026-10-20）：後端 14 個測試（含 10 執行緒併發廣播與 1003 拒絕文字幀）全綠通過 |
-| `000009` | 前端 WebSocket (`binaryType = 'arraybuffer'`) 即時通訊封裝與多分頁聯調 | 待核准 |
+| `000009` | 前端 WebSocket (`binaryType = 'arraybuffer'`) 即時通訊封裝與多分頁聯調 | 已完成（2026-10-21）：`npm run build`（734ms）通過，前端 `binaryType = 'arraybuffer'` 二進位收發與雙分頁 `< 100 ms` 即時廣播聯調完成，Phase 2 完成 |

@@ -1,6 +1,6 @@
 # 000009 - 前端 WebSocket (`binaryType = 'arraybuffer'`) 即時通訊封裝與多分頁聯調
 
-**狀態**：待核准
+**狀態**：已完成（2026-10-21）
 **日期**：2026-10-20
 **前置**：`000007`（Phase 2 任務拆解）已核准、後端 `000008`（`ChatWebSocketHandler` 與 14 項測試）已完成。
 
@@ -332,3 +332,20 @@ export class ChatWebSocketClient {
 | 決定 | 推翻的話怎麼改 |
 |---|---|
 | `connect()` 成功時自動發送一筆 `MessageType.JOIN` 二進位封包、點擊手動斷線時自動發送一筆 `MessageType.LEAVE` 封包 | 這樣一打開第 2 個分頁就能馬上在第一個分頁看到「某某某加入了聊天室」的即時廣播效果，而且能把 `.proto` 裡的 `JOIN (1)` 和 `LEAVE (2)` 枚舉完整用上；若你不希望連斷線時自動發通知，核准時告訴我即可 |
+
+---
+
+## 七、結果
+
+- **完成日期**：2026-10-21
+- **實際改動**：
+  1. **步驟 1（使用者親手實作）**：
+     - 修改 `frontend/vite.config.ts`，在 `/api` 代理設定加入 `ws: true`，啟用 WebSocket 握手與二進位幀代理轉發。
+     - 新增 `frontend/src/api/chatWs.ts`，封裝 `ChatWebSocketClient` 類別：設定 `socket.binaryType = 'arraybuffer'`，實作 `connect`（含連線成功自動發送 `MessageType.JOIN`）、`onmessage`（`ArrayBuffer` ➔ `Uint8Array` ➔ `ChatMessage.decode` 反序列化與 `PacketMetrics` 統計）、`sendMessage`（`ChatMessage.encode(outgoing).finish()` ➔ `ws.send`）與 `disconnect`（關閉前自動發送 `MessageType.LEAVE`）。
+  2. **步驟 2（AI 代寫 UI 串接與雙分頁驗收）**：
+     - 更新 `frontend/src/App.vue`，串接 `ChatWebSocketClient`，新增頂部 WebSocket 連線狀態徽章（🟢 `WS 已連線 (/api/ws/chat)` / 🔴 `WS 未連線`）與連線/斷線切換按鈕，並以訊息 `id` 去重整合 HTTP 歷史訊息載入與 WebSocket 即時推播。
+- **驗證結果**：
+  - 前端型別檢查與打包：`npm.cmd run build`（`vue-tsc -b && vite build`）於 `734ms` 零錯誤通過。
+  - 瀏覽器雙分頁實機聯調：開啟多個分頁測試 `JOIN` / `CHAT` / `LEAVE` 二進位幀推播，各分頁於 `< 100 ms` 內即時同步渲染且儀表板即時刷新封包統計，Phase 2 全部完成。
+- **偏離與補充說明**：
+  - `chatWs.ts` 中 `sendMessage` 使用 `this.ws.send(new Uint8Array(outgoingBytes))` 確保符合 TypeScript 6.0 嚴格 `ArrayBuffer` 泛型簽章，且避免直接暴露 `protobufjs` 底層 8KB 共用記憶體池；`subarray(0, 24)` 用於擷取前 24 bytes 預覽。
