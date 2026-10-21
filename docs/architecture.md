@@ -33,6 +33,7 @@
 - **Phase 0（地基與協定編譯）**：建立共用 `proto/chat.proto`，配置後端 Maven 與前端 npm 的 Protobuf 自動編譯（codegen），並以單元測試驗證 Java 端 `byte[]` 序列化與反序列化。
 - **Phase 1（HTTP REST + Protobuf 二進位收發）**：後端配置 `ProtobufHttpMessageConverter` 提供發送訊息與取得歷史訊息的 REST API（`application/x-protobuf`）；前端用 Vue 3 + `fetch` (`ArrayBuffer` / `Uint8Array`) 收發二進位封包。
 - **Phase 2（WebSocket + Protobuf 即時通訊聊天室）**：後端使用 Spring WebSocket `BinaryWebSocketHandler` 收發 `BinaryMessage`；前端使用原生 `WebSocket` (`binaryType = "arraybuffer"`) 實作多分頁即時廣播聊天室（含加入/離開通知與一般訊息）。
+- **Phase 3（協定演進、向後相容與進階語法 `oneof` / `map`）**：在不破壞既有 1～5 號欄位的前提下擴充 `chat.proto`（加入 `oneof` 多態封包、`map<string, string>` 鍵值對與 `reserved` 保護鎖），以 JUnit 驗證新舊版本雙向相容（含 `UnknownFieldSet`）並於前端聊天室實現貼圖多態訊息與 Metadata 標籤即時廣播。
 
 ### 明確不做（以及為什麼現在不做）
 
@@ -146,6 +147,7 @@
 | Phase 0 | 地基：`.proto` 定義、前後端專案骨架與自動 Codegen、Java 序列化單元測試 | 1. `mvn test-compile` 自動從 `proto/chat.proto` 產出 Java 類別且通過序列化單元測試（物件 → `byte[]` → 物件欄位完全一致，且印出二進位 byte 長度與 JSON 字串長度對比）<br>2. 前端 `npm run proto` 成功產出 `chat.js` 與 `chat.d.ts` 且 `npm run build` 型別檢查通過 |
 | Phase 1 | HTTP REST + Protobuf 二進位收發 | 1. 後端啟動於 `8080` 埠，`POST /api/messages` 與 `GET /api/messages` 僅收發 `application/x-protobuf`（搭配 Spring `MockMvc` 整合測試通過）<br>2. 前端啟動並能發送訊息與拉取歷史清單，瀏覽器 DevTools Network 面板確認 Request/Response Content-Type 為 `application/x-protobuf` 且 Payload 為二進位 |
 | Phase 2 | WebSocket + Protobuf 即時通訊聊天室 | 1. 後端 WebSocket 端點 `/ws/chat` 支援 `BinaryMessage` 連線管理與廣播（含併發廣播與容量上限單元測試通過）<br>2. 開啟 2 個以上瀏覽器分頁輸入不同暱稱，任一分頁發送訊息、加入或離開時，其餘分頁在 **< 100 ms** 內即時收到二進位幀並解碼渲染於畫面上 |
+| Phase 3 | 協定演進（向後相容）與進階語法（`oneof` 多態封包與 `map`） | 1. 擴充 `chat.proto` 加入 `oneof payload`、`map<string, string> metadata` 與 `reserved`，既有 18 項測試全綠且新增的新舊版本雙向相容、`oneof` 互斥與 `map` 單元測試通過<br>2. 前端聊天室支援發送與即時渲染貼圖多態封包與 Metadata 標籤 |
 
 每個階段開始時先寫一份「任務拆解」報告（見 `.claude/skills/plan-report/`）。
 

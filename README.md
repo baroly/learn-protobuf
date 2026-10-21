@@ -15,8 +15,8 @@
     - `000008 - 後端 Spring WebSocket 二進位處理器（BinaryWebSocketHandler）與併發廣播測試`：已完成（2026-10-20），後端 14 個單元/整合測試全綠通過。
     - `000009 - 前端 WebSocket (binaryType = 'arraybuffer') 即時通訊封裝與多分頁聯調`：**已完成（2026-10-21）**。前端 `chatWs.ts` 與 `App.vue` 雙分頁 `< 100 ms` 即時廣播（含 `JOIN` / `CHAT` / `LEAVE` 二進位幀）實機驗收通過！
 - **下一步**：
-  - 架構路線圖（`docs/architecture.md`）規劃的 **Phase 0 ～ Phase 2 已全數達成**！
-  - 若後續想進階練習 **Phase 3（Protobuf 協定演進與向後相容：新增欄位、`oneof`、`map`、欄位廢棄 `reserved` 等）**，可隨時提出開啟新階段規劃。
+  1. 閱讀總複習與進階語法筆記：[docs/notes/08 - Phase 0 至 Phase 2 Protobuf 前後端二進位通訊總複習與進階語法預覽 (oneof 與 map)](docs/notes/08%20-%20Phase%200%20%E8%87%B3%20Phase%202%20Protobuf%20%E5%89%8D%E5%BE%8C%E7%AB%AF%E4%BA%8C%E9%80%B2%E4%BD%8D%E9%80%9A%E8%A8%8A%E7%B8%BD%E8%A4%87%E7%BF%92%E8%88%87%E9%80%B2%E9%9A%8E%E8%AA%9E%E6%B3%95%E9%A0%90%E8%A6%BD%20(oneof%20%E8%88%87%20map).md)。
+  2. 審閱並核准 Phase 3 規劃報告：`docs/plans/phase 3/000010 - Phase 3 任務拆解：協定演進（向後相容）與進階語法（oneof 多態封包與 map）.md`（拆為後端 `000011` 與前端 `000012`）。
 - **之後寫程式前一定要知道的事**：
   1. **實際目錄與 Package 結構**：後端模組位於 `demo/`（Java package 為 `com.demo.chat`，Protobuf 產生碼 package 為 `com.demo.chat.proto`），共用協定檔位於 `proto/demo/chat/chat.proto`（Protobuf package 為 `demo.chat`），前端位於 `frontend/`（匯入命名空間為 `import { demo } from './proto/chat'`）。
   2. **後端 REST 與 WebSocket 完整路由**：`demo/src/main/resources/application.yaml` 設有 `server.servlet.context-path: /api`，REST 路徑為 `/api/messages`，WebSocket 路徑為 `/api/ws/chat`（而在 `@WebMvcTest` 的 `MockMvc` 測試中不含 `context-path`，路徑為 `"/messages"`，詳見 [docs/notes/05](docs/notes/05%20-%20Spring%20MockMvc%20%E6%B5%81%E5%BC%8F%20API%EF%BC%88%E4%B8%89%E9%83%A8%E6%9B%B2%EF%BC%89%E8%88%87%20Protobuf%20%E4%BA%8C%E9%80%B2%E4%BD%8D%E6%B8%AC%E8%A9%A6%E8%A9%B3%E8%A7%A3.md)）。
